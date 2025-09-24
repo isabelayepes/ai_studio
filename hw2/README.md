@@ -26,7 +26,7 @@ tail -n 120 out.log
 
 ## Checks for Active Ports (EC2)
 - `sudo lsof -iTCP -sTCP:LISTEN -P | egrep ':6000|:6001'`
-
+```
 ## Run (Ollama model on laptop)
 `ollama serve`
 `ollama pull deepseek-r1`
