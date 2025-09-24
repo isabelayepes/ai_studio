@@ -1,3 +1,6 @@
 nanda-adapter
 crewai
 langchain-anthropic
+pydantic
+python-dotenv
+

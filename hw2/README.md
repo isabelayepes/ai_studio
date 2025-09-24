@@ -1,58 +1,33 @@
-# HW2 — Wrap agent with the NANDA Adapter
+# HW2 — NANDA-wrapped Agent
 
-## Overview
-This is my HW2 submission for “Connecting Agents”.  
-I wrapped my persona-based CrewAI agent with the **NANDA Adapter** so it runs on EC2, is reachable via HTTPS, and can interoperate with other agents.
+Disclaimer: ChatGPT was used to help generate this code.
 
-**Domain:** `myisabelaagent.duckdns.org`  
-**Platform:** Amazon Linux 2023 (Python 3.11)
+- **Agent:** CrewAI persona agent (from HW1) wrapped with **NANDA Adapter**  
+- **Domain:** `myisabelaagent.duckdns.org` (EC2, Let’s Encrypt TLS)  
+- **APIs:**  
+  - `GET  https://<domain>:6001/api/health` → 200  
+  - `POST https://<domain>:6001/api/send`   → `{ agent_id, response }`
 
-## Files
-- `you_agent_ollama.py` — my original persona agent  
-- `you_agent_nanda.py` — wrapper that exposes the agent through NANDA  
-- `requirements.txt` — key deps (`nanda-adapter`, `crewai`, `langchain-anthropic`)  
-- `run.sh` — helper script to start the agent  
-- *(not committed)* `fullchain.pem`, `privkey.pem` — TLS certs  
-
-## Setup (on EC2)
+## Run (on EC2)
 ```bash
 source ~/venvs/nanda311/bin/activate
 pip install -r requirements.txt
 
-# Certs in this folder (symlinks or copies)
-ln -sf /etc/letsencrypt/live/myisabelaagent.duckdns.org/fullchain.pem fullchain.pem
-ln -sf /etc/letsencrypt/live/myisabelaagent.duckdns.org/privkey.pem   privkey.pem
+# certs in working dir
+cp -L /etc/letsencrypt/live/myisabelaagent.duckdns.org/fullchain.pem .
+cp -L /etc/letsencrypt/live/myisabelaagent.duckdns.org/privkey.pem   .
+chmod 644 fullchain.pem && chmod 600 privkey.pem
 
-# Env vars (in shell or ~/.bashrc)
 export ANTHROPIC_API_KEY="…"
 export DOMAIN_NAME="myisabelaagent.duckdns.org"
-```
 
-## Run
-```bash
 ./run.sh
-tail -n 50 out.log
-```
+tail -n 120 out.log
 
-Expected in logs:
-- NANDA initialized  
-- Agent bridge on `http://<EC2-IP>:6000`  
-- HTTPS API on `https://myisabelaagent.duckdns.org:6001`  
-- Enrollment link printed  
+## Checks for Active Ports (EC2)
+- `sudo lsof -iTCP -sTCP:LISTEN -P | egrep ':6000|:6001'`
 
-## Test Endpoints
-```bash
-# Health
-curl -I https://myisabelaagent.duckdns.org:6001/api/health
-
-# Talk to my agent
-curl -s -X POST https://myisabelaagent.duckdns.org:6001/api/send \
-  -H 'Content-Type: application/json' \
-  -d '{"message":"Introduce yourself in 3 sentences."}'
-```
-
-## Registry Note
-The adapter generates an enrollment link, but the registry API was unavailable (`:6900` timed out; 443 returned 501/404). I added a `registry_url.txt` override so the agent runs cleanly while waiting for registry fixes. Logs and curl probes are included.
-
-## Feedback
-NANDA made it easy to wrap my agent once DNS, certs, and firewall rules were set up. The main pain point was the registry endpoint not working as documented.
+## Run (Ollama model on laptop)
+`ollama serve`
+`ollama pull deepseek-r1`
+`python you_agent_ollama.py`

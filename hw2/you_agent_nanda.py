@@ -1,77 +1,59 @@
 #!/usr/bin/env python3
-import os, json
-from nanda_adapter import NANDA
-from crewai import Agent, Task, Crew
-from langchain_anthropic import ChatAnthropic
+# Submission-ready: CrewAI-style persona + Anthropic via LangChain, parsed to str.
+# Env needed: ANTHROPIC_API_KEY, DOMAIN_NAME
+# Certs in CWD: ./fullchain.pem ./privkey.pem
 
+import os
+from nanda_adapter import NANDA
+from langchain_anthropic import ChatAnthropic
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+
+# Reuse your HW1 persona
 from you_agent_ollama import Persona, persona_prompt
 
 def create_you_agent_improvement():
+    YOU = Persona()
+
+    # Anthropic LLM (Haiku) via LangChain
     llm = ChatAnthropic(
         api_key=os.getenv("ANTHROPIC_API_KEY"),
         model="claude-3-haiku-20240307",
         temperature=0.3,
     )
 
-    YOU = Persona()
-    you_agent = Agent(
-        role="Personal agent",
-        goal=("Represent the user in conversations and tasks; draft messages, plans, "
-              "and code consistent with their background, skills, and tone."),
-        backstory=persona_prompt(YOU),
-        llm=llm,
-        verbose=False,
+    # System prompt pins your persona
+    system_prompt = (
+        persona_prompt(YOU)
+        + "\n\nIMPORTANT:\n"
+        + f"- Speak as \"{YOU.name}\" in first person.\n"
+        + "- Do NOT say you are Claude or an AI assistant.\n"
+        + "- Be concise and specific.\n"
     )
 
+    # Build once; StrOutputParser guarantees a plain string
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", system_prompt),
+        ("human", "{message}")
+    ])
+    chain = prompt | llm | StrOutputParser()
+
     def improve(message_text: str) -> str:
-        task = Task(
-            description=(
-                f"{message_text}\n\n"
-                f"- Speak in the first person as \"{YOU.name}\".\n"
-                "- Do NOT say you are Claude or an AI assistant.\n"
-                "- Follow the persona, strengths, interests, and constraints above.\n"
-                "- Keep it concise and specific."
-            ),
-            expected_output="A concise, helpful reply in the user's voice.",
-            agent=you_agent,
-        )
-        result = Crew(agents=[you_agent], tasks=[task]).kickoff()
-
-        # ---- normalize to plain text ----
-        if isinstance(result, str):
-            return result
-
-        # common CrewAI attrs
-        for attr in ("final_output", "output", "raw"):
-            try:
-                val = getattr(result, attr)
-                if isinstance(val, str) and val.strip():
-                    return val
-            except Exception:
-                pass
-
-        # dict-ish?
         try:
-            if isinstance(result, dict):
-                # prefer common keys
-                for k in ("final_output", "output", "text", "response"):
-                    if k in result and isinstance(result[k], str) and result[k].strip():
-                        return result[k]
-                return json.dumps(result, ensure_ascii=False)
-        except Exception:
-            pass
-
-        # fallback: stringify anything else
-        try:
-            return str(result)
-        except Exception:
-            return "Sorry—produced a non-text result; please try again."
+            text = chain.invoke({"message": message_text})
+            return text.strip() if isinstance(text, str) else str(text)
+        except Exception as e:
+            # Always return a string so the adapter never sends non-text
+            return f"Sorry—error: {type(e).__name__}: {e}"
 
     return improve
 
 def main():
-    nanda = NANDA(create_you_agent_improvement())
-    nanda.start_server_api(os.getenv("ANTHROPIC_API_KEY"), os.getenv("DOMAIN_NAME"))
+    NANDA(create_you_agent_improvement()).start_server_api(
+        os.getenv("ANTHROPIC_API_KEY"),
+        os.getenv("DOMAIN_NAME"),
+    )
 
 if __name__ == "__main__":
     main()
+
