@@ -28,6 +28,6 @@ tail -n 120 out.log
 - `sudo lsof -iTCP -sTCP:LISTEN -P | egrep ':6000|:6001'`
 ```
 ## Run (Ollama model on laptop)
-`ollama serve`
-`ollama pull deepseek-r1`
-`python you_agent_ollama.py`
+- `ollama serve`
+- `ollama pull deepseek-r1`
+- `python you_agent_ollama.py`
