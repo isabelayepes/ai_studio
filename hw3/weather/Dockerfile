@@ -15,7 +15,6 @@ COPY src/ .
 
 # Smithery will hit the Streamable HTTP endpoint; we listen on $PORT
 ENV MCP_TRANSPORT=http
-ENV PORT=8081
 EXPOSE 8081
 
 # Start the server

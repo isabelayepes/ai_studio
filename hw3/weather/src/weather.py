@@ -95,7 +95,7 @@ def main():
     # In hosted/container environments we'll set MCP_TRANSPORT=http.
     transport = os.getenv("MCP_TRANSPORT", "stdio")
     if transport == "http":
-        port = int(os.getenv("PORT", "8000"))
+        port = int(os.getenv("PORT", "8081"))
         mcp.run(transport="http", host="0.0.0.0", port=port)
     else:
         mcp.run(transport="stdio")
