@@ -2,6 +2,7 @@ from typing import Any
 import os
 import httpx
 from mcp.server.fastmcp import FastMCP
+from starlette.middleware.cors import CORSMiddleware
 import uvicorn
 
 # Initialize FastMCP server
@@ -98,6 +99,13 @@ def main():
     if transport in {"http", "streamable-http"}:
         # Build the Streamable HTTP ASGI app that serves /mcp
         app = mcp.streamable_http_app()
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=False,
+            allow_methods=["GET", "POST", "OPTIONS"],
+            allow_headers=["*"],
+        )
         uvicorn.run(app, host="0.0.0.0")
 
     else:
