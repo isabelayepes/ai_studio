@@ -1,4 +1,5 @@
 from typing import Any
+import os
 import httpx
 from mcp.server.fastmcp import FastMCP
 
@@ -90,8 +91,15 @@ async def get_forecast(latitude: float, longitude: float) -> str:
     return "\n---\n".join(forecasts)
 
 def main():
-    # Initialize and run the server
-    mcp.run(transport='stdio')
+    # Default to stdio so Claude Desktop works out of the box.
+    # In hosted/container environments we'll set MCP_TRANSPORT=http.
+    transport = os.getenv("MCP_TRANSPORT", "stdio")
+    if transport == "http":
+        port = int(os.getenv("PORT", "8000"))
+        mcp.run(transport="http", host="0.0.0.0", port=port)
+    else:
+        mcp.run(transport="stdio")
+
 
 if __name__ == "__main__":
     main()
