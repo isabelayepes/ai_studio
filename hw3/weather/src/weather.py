@@ -2,6 +2,7 @@ from typing import Any
 import os
 import httpx
 from mcp.server.fastmcp import FastMCP
+import uvicorn
 
 # Initialize FastMCP server
 mcp = FastMCP("weather")
@@ -94,8 +95,11 @@ def main():
     # Default to stdio so Claude Desktop works out of the box.
     # In hosted/container environments we'll set MCP_TRANSPORT=http.
     transport = os.getenv("MCP_TRANSPORT", "stdio")
-    if transport == "http":
-        mcp.run(transport="http") # FastMCP automatically binds to 0.0.0.0 when using HTTP transport, and sets its own port.
+    if transport in {"http", "streamable-http"}:
+        # Build the Streamable HTTP ASGI app that serves /mcp
+        app = mcp.streamable_http_app()
+        uvicorn.run(app, host="0.0.0.0")
+
     else:
         mcp.run(transport="stdio")
 
