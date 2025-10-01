@@ -96,7 +96,7 @@ def main():
     transport = os.getenv("MCP_TRANSPORT", "stdio")
     if transport == "http":
         port = int(os.getenv("PORT", "8081"))
-        mcp.run(transport="http", host="0.0.0.0", port=port)
+        mcp.run(transport="http", port=port) # FastMCP automatically binds to 0.0.0.0 when using HTTP transport, so you don't need to specify the host parameter.
     else:
         mcp.run(transport="stdio")
 
