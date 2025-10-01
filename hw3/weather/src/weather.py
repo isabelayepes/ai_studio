@@ -107,8 +107,9 @@ def main():
             allow_methods=["GET", "POST", "OPTIONS"],
             allow_headers=["*"],
         )
-        uvicorn.run(app, host="0.0.0.0")
-
+        # Bind to the port Smithery injects
+        port = int(os.getenv("PORT", "8000"))
+        uvicorn.run(app, host="0.0.0.0", port=port)
     else:
         mcp.run(transport="stdio")
 
