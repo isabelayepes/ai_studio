@@ -99,6 +99,7 @@ def main():
     if transport in {"http", "streamable-http"}:
         # Build the Streamable HTTP ASGI app that serves /mcp
         app = mcp.streamable_http_app()
+        # Allow calls from browser clients (Smithery playground, etc.)
         app.add_middleware(
             CORSMiddleware,
             allow_origins=["*"],
