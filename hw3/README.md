@@ -30,4 +30,7 @@ Then you can ensure the Claude Desktop's Local MCP Servers' config json in setti
 }
 ```
 
-For smithery.ai deployment, I needed to move weather.py into a src folder.
+For smithery.ai deployment, I needed to move weather.py into a src folder. Support for smithery.ai is added to the main function and packages in pyproject.toml (starlette and uvicorn). CORS middleware ensures the web playground’s browser can call the /mcp endpoint.
+Also since `FastMCP.run(..., host=..., port=...)`isn’t supported in the Smithery SDK version, we drive uvicorn directly with `uvicorn.run(app, host="0.0.0.0", port=port)`.
+
+Added the server to Smithery.ai: [![smithery badge](https://smithery.ai/badge/@isabelayepes/weather)](https://smithery.ai/server/@isabelayepes/weather)
