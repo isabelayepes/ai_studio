@@ -1,36 +1,98 @@
-For this assingment I created a weather MCP server which has two tools: get alerts and get forecast. I followed instructions here: https://modelcontextprotocol.io/docs/develop/build-server
-For the smithery yaml file I followed the format here: https://smithery.ai/docs/build/project-config/smithery-yaml#smithery-yaml 
+# Weather MCP Server (Python · FastMCP · Streamable HTTP)
 
-Terminal commands I used to run the server:
-`curl -LsSf https://astral.sh/uv/install.sh | sh`
-`source $HOME/.local/bin/env`
-`uv init weather`
-`cd weather`
-`uv venv`
-`source .venv/bin/activate`
-`uv add "mcp[cli]" httpx`
-`uv pip install fastmcp`
-`uv run weather.py`
+[![smithery badge](https://smithery.ai/badge/@isabelayepes/weather)](https://smithery.ai/server/@isabelayepes/weather)
 
-Then you can ensure the Claude Desktop's Local MCP Servers' config json in settings>developer has:
+> **Credit:** Adapted from the official MCP “Build a server” tutorial:  
+> https://modelcontextprotocol.io/docs/develop/build-server  
+> Adapted to support both Smithery cloud deployment and local deployment (i.e. Claude Desktop)  
 
+A minimal MCP server exposing two tools backed by the US National Weather Service (NWS):
+
+- `get_forecast(latitude, longitude)` – short-term forecast for a location  
+- `get_alerts(state)` – active alerts for a US state (2-letter code, e.g. `IL`)  
+> NWS supports US locations only.
+
+---
+
+## Live (hosted on Smithery)
+
+- **Endpoint:** `https://server.smithery.ai/@isabelayepes/weather/mcp`  
+- **Auth header:** `Authorization: Bearer <smithery_api_key>`  
+  (Opening the URL in a browser without the header shows `invalid_token` — expected.)
+
+**Quick curl check (replace token):**
+```bash
+curl -N -X POST \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  --data '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"local","version":"1.0.0"}}}' \
+  https://server.smithery.ai/@isabelayepes/weather/mcp
 ```
+
+---
+
+## Local development
+
+Requires Python ≥ 3.11 and [uv](https://github.com/astral-sh/uv).
+
+```bash
+uv venv && source .venv/bin/activate
+uv sync
+
+# STDIO mode (for Claude Desktop)
+uv run python src/weather.py
+
+# HTTP mode (simulate hosted env)
+MCP_TRANSPORT=http PORT=8000 uv run python src/weather.py
+```
+
+### Claude Desktop config (macOS example)
+
+`~/Library/Application Support/Claude/claude_desktop_config.json`:
+```json
 {
   "mcpServers": {
     "weather": {
       "command": "/Users/isabelayepes/.local/bin/uv",
       "args": [
         "--directory",
-        "[absolute-path]/ai_studio/hw3/weather/src",
+        "/ABSOLUTE/PATH/TO/weather",
         "run",
-        "weather.py"
+        "python",
+        "src/weather.py"
       ]
     }
   }
 }
 ```
 
-For smithery.ai deployment, I needed to move weather.py into a src folder. Support for smithery.ai is added to the main function and packages in pyproject.toml (starlette and uvicorn). CORS middleware ensures the web playground’s browser can call the /mcp endpoint.
-Also since `FastMCP.run(..., host=..., port=...)`isn’t supported in the Smithery SDK version, we drive uvicorn directly with `uvicorn.run(app, host="0.0.0.0", port=port)`.
+---
 
-Added the server to Smithery.ai: [![smithery badge](https://smithery.ai/badge/@isabelayepes/weather)](https://smithery.ai/server/@isabelayepes/weather)
+## Deployment (Smithery)
+
+This repo uses **runtime: container** with `Dockerfile` + `smithery.yaml`.  
+The server builds an ASGI app via `mcp.streamable_http_app()` and serves it with **uvicorn**, adding **CORS** so browser clients can call `/mcp`.
+
+> Note: In `mcp==1.15.0`, `FastMCP.run()` does **not** accept `host/port` for HTTP, so we run uvicorn directly.
+
+---
+
+## Project structure
+
+```
+hw3/weather/
+├─ src/
+│  └─ weather.py
+├─ pyproject.toml        # deps: mcp[cli], httpx, starlette, uvicorn
+├─ uv.lock
+├─ Dockerfile
+└─ smithery.yaml
+```
+
+---
+
+## Links
+
+- Hosted server page: https://smithery.ai/server/@isabelayepes/weather  
+- Repo: https://github.com/isabelayepes/ai_studio/tree/main/hw3  
+- Tutorial (source code basis): https://modelcontextprotocol.io/docs/develop/build-server
