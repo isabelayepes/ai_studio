@@ -1,16 +1,16 @@
 # you_agent_ollama.py
-# deps you already have: mcp, faster-whisper, numpy, soundfile, spacy(en), crewai, langchain, pydantic, python-dotenv
-# make sure Ollama is running and you've pulled deepseek-r1 (or another instruct model)
+# deps: mcp, kokoro-tts (server side), soundfile, numpy, spacy(en), crewai, langchain, pydantic, python-dotenv
+# make sure Ollama is running and you've pulled a model (e.g., `ollama pull llama3.1:8b-instruct` or `deepseek-r1`)
 
 import os
 import re
-from typing import List, Optional
+from typing import List
 from pydantic import BaseModel
 from crewai import Agent, Task, LLM
-from speech_mcp_client import tts, stt  # your MCP speech client
+from speech_mcp_client import tts, stt
 
-# ---------------- LLM via Ollama ----------------
-# Tip: if you want fewer <think> blocks, try an instruct model like llama3.1:8b-instruct.
+# ------------- LLM via Ollama -------------
+# Tip: to minimize <think> blocks, try an instruct model like "ollama/llama3.1:8b-instruct"
 LLM_MODEL = os.getenv("OLLAMA_MODEL", "ollama/deepseek-r1")
 
 llm = LLM(
@@ -19,7 +19,7 @@ llm = LLM(
     temperature=0.3,
 )
 
-# ---------------- Persona ----------------
+# ------------- Persona -------------
 class Persona(BaseModel):
     name: str = "Isabela"
     roles: List[str] = ["User's Representative Agent"]
@@ -33,9 +33,17 @@ class Persona(BaseModel):
         "Music generation using a transformer (PyTorch, Lakh MIDI dataset)",
         "Two IBM internships (software dev + AI agents / A2A protocols)",
     ]
-    interests: List[str] = ["AI alignment & impact", "AI architecture & data science", "Mindfulness", "Running & yoga"]
+    interests: List[str] = [
+        "AI alignment & impact",
+        "AI architecture & data science",
+        "Mindfulness",
+        "Running & yoga",
+    ]
     communication_style: str = "Clear, concise, friendly. Avoids purple prose. Prefers examples."
-    constraints: List[str] = ["Cites assumptions if unsure", "Avoids overclaiming; start simple before fancy methods"]
+    constraints: List[str] = [
+        "Cites assumptions if unsure",
+        "Avoids overclaiming; start simple before fancy methods",
+    ]
 
 YOU = Persona()
 
@@ -70,23 +78,26 @@ you_agent = Agent(
     verbose=False,
 )
 
-# ---------------- Tasks ----------------
-def make_about_task(optional_transcript: Optional[str]) -> Task:
-    base_desc = (
+# ------------- Task (no transcript) -------------
+about_task = Task(
+    description=(
         "Explain the user's background in ~3 sentences. "
         "Summarize their strengths, recent projects, and interests. "
         "Reply as a single natural paragraph only."
-    )
-    if optional_transcript:
-        base_desc += f"\nUse this transcript as raw material (clean up grammar; ignore disfluencies):\n---\n{optional_transcript}\n---"
-    return Task(
-        description=base_desc,
-        expected_output="One clean paragraph (~3 sentences), no headings.",
-        agent=you_agent,
-    )
+    ),
+    expected_output="One clean paragraph (~3 sentences), no headings.",
+    agent=you_agent,
+)
 
-# ---------------- Helpers: clean CrewAI output & prep for TTS ----------------
+# ------------- Cleaner for LLM output -------------
 THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
+
+def clean_for_tts(text: str) -> str:
+    s = THINK_RE.sub("", text)                         # drop <think>…</think>
+    s = re.sub(r"(?im)^\s*(outline|summary|raw|output\s*format)\s*:.*$", "", s)
+    s = re.sub(r"```.*?```", "", s, flags=re.DOTALL)   # strip fenced code
+    s = re.sub(r"\s+\n", "\n", s).strip()              # tidy whitespace
+    return s
 
 def to_text(task_out) -> str:
     """Extract a string from CrewAI TaskOutput across versions."""
@@ -96,32 +107,21 @@ def to_text(task_out) -> str:
             return v
     return str(task_out)
 
-def clean_for_tts(text: str) -> str:
-    s = THINK_RE.sub("", text)                       # drop <think>…</think>
-    s = re.sub(r"(?im)^\s*(outline|summary|raw|output\s*format)\s*:.*$", "", s)
-    s = re.sub(r"```.*?```", "", s, flags=re.DOTALL) # strip fenced code
-    s = re.sub(r"\s+\n", "\n", s).strip()            # tidy whitespace
-    return s
-
-# ---------------- Main ----------------
+# ------------- Main -------------
 if __name__ == "__main__":
     # 1) Optional: speech-to-text first
-    transcript = ""
-    wav_path = "samples/isabela.wav"  # change to your file if needed
+    wav_path = "samples/isabela.wav"
     if os.path.exists(wav_path):
         stt_res = stt(audio_path=wav_path)
-        transcript = stt_res.get("text", "") or ""
-        print("Transcript:", transcript)
+        result = stt_res.get("text", "") or ""
+        print("Speech to text:", result)
 
-    # 2) Run the “about me” task (uses transcript if present)
-    task_about_me = make_about_task(transcript)
-    about_out = task_about_me.execute_sync(agent=you_agent)
-
+    # 2) Run the “about me” task
+    about_out = about_task.execute_sync(agent=you_agent)
     about_text = clean_for_tts(to_text(about_out))
     print("\n=== ABOUT (clean) ===\n", about_text)
 
     # 3) TTS with Kokoro (voice id: af_heart)
-    #    If you don’t want audio right now, comment this block out.
     res = tts(
         about_text,
         voice="af_heart",          # Kokoro voice id

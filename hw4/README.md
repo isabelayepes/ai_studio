@@ -2,6 +2,12 @@
 
 This project adds speech-to-text and text-to-speech to an MCP server and wires it into a small CrewAI “personal agent” running on a local LLM via Ollama.
 
+# Demo and Explanation
+- [Demo Link]()
+- For the speech to text, the input `isabela.wav` is "Hello, this is the real Isabela on the speech to text function."
+- For the text to speech, for the server test, the input is "It works — Kokoro speaking!"
+- Then the CrewAI Demo 
+
 ### What’s inside
 - `mcp_speech_server.py` — MCP server exposing:
   - `transcribe_audio` (STT via faster-whisper)
