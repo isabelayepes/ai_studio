@@ -1,9 +1,16 @@
+# Core MCP + speech
 mcp==1.16.0
-kokoro==0.9.4        
+kokoro==0.9.4
 faster-whisper==1.2.0
 soundfile>=0.12
 numpy>=1.24
-python-dotenv>=1.0
+
+# spaCy (Kokoro uses it for sentence cleanup)
 spacy==3.8.*
+
+# Agent framework
 crewai
+crewai-tools
+
+# Data models
 pydantic>=2

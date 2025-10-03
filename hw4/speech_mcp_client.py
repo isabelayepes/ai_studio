@@ -2,12 +2,6 @@ from __future__ import annotations
 import os, sys, json, anyio
 from typing import Any, Dict
 
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except Exception:
-    pass
-
 from mcp.client.stdio import StdioServerParameters, stdio_client
 from mcp.client.session import ClientSession
 

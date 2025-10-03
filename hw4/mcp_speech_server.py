@@ -19,13 +19,6 @@ from typing import Optional, Tuple, List
 import numpy as np
 import soundfile as sf
 
-# Optional .env
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except Exception:
-    pass
-
 # ---------- Config ----------
 KOKORO_LANG_CODE = os.getenv("KOKORO_LANG_CODE", "a")   # 'a' => American English
 KOKORO_DEFAULT_VOICE = os.getenv("KOKORO_VOICE", "af_heart")
