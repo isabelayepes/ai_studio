@@ -2,7 +2,7 @@
 
 This project adds speech-to-text and text-to-speech to an MCP server and wires it into a small CrewAI “personal agent” running on a local LLM via Ollama.
 
-# Demo and Explanation
+### Demo and Explanation
 - [Demo Link]()
 - Model: ollama/deepseek-r1 locally hosted.
 - For the speech to text, the input `samples/isabela.wav` is "Hello, this is the real Isabela on the speech to text function". The output is that text which appears in the terminal after "Speech to Text:".
