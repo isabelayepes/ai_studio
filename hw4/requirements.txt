@@ -5,12 +5,9 @@ faster-whisper==1.2.0
 soundfile>=0.12
 numpy>=1.24
 
-# spaCy (Kokoro uses it for sentence cleanup)
+# spaCy runtime (you'll download the model separately)
 spacy==3.8.*
 
-# Agent framework
-crewai
-crewai-tools
-
-# Data models
+# Agent + data model
+crewai>=0.60,<1.0
 pydantic>=2

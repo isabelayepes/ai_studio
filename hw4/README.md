@@ -22,6 +22,7 @@
 - `source .venv/bin/activate`
 - `pip install -r requirements.txt`
 - `python -m spacy download en_core_web_sm` # Kokoro uses spaCy under the hood to clean and segment text into sentences/tokens before TTS
+- `mkdir -p out/speech` only if not already there
 - in a different terminal: `python -m http.server 8787 --directory out` then in a browser you can go to: `http://localhost:8787/speech/`
 
 ### Run MCP Server List Voices tool test:
@@ -38,7 +39,7 @@ PY
 {'backend': 'kokoro', 'voices': ['af_heart'], 'lang_code': 'a'}
 ```
 
-### Run the MCP server TTS (synthesize) and SST (transcribe) tools tests:
+### Run the MCP server TTS (synthesize) and STT (transcribe) tools tests:
 ```
 # save files to this folder
 export TTS_DOWNLOAD_DIR=out
