@@ -88,4 +88,5 @@ afplay out/speech/intro.wav
     - When using stdio, the MCP stream must be pure JSON-RPC. Any progress bars or installer logs printed to stdout will corrupt the stream and cause “Invalid JSON” errors. Fixes that worked: run Python unbuffered (-u/PYTHONUNBUFFERED=1), redirect noisy library output to stderr, and keep our own prints off stdout. (SSE/HTTP could avoid this, but stdio was simpler for local dev.)
     - FastMCP expects arguments under a {"payload": ...} wrapper. Missing that causes Pydantic “Field required” errors. The client now always sends arguments={"payload": arguments}.
     - Some MCP clients (e.g., my Claude Desktop setup) didn’t auto-play or download audio returned from tools. Saving files to a known folder (TTS_DOWNLOAD_DIR) and optionally exposing them via a tiny HTTP server (TTS_FILE_BASE_URL) made results easy to play (afplay on macOS) or click.
+    - Would not recommend CrewAI for further iterations because of difficulties with tool use.
 
