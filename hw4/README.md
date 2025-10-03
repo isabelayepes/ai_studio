@@ -1,7 +1,7 @@
 # HW4 — MCP Server (STT + TTS) + Agent CrewAI + Ollama
 
 ### Demo 
-- [Demo Link]()
+- [Demo Link](https://youtu.be/qm4Fu0L_jhE)
 - This project adds speech-to-text and text-to-speech to an MCP server and wires it into a small CrewAI “personal agent” running on a local LLM via Ollama.
 - Model: ollama/deepseek-r1 locally hosted.
 
