@@ -19,6 +19,7 @@ about_task = Task(
     agent=you_agent,
 )
 ```
+- After generating a response it is converted to speech using the mcp tool and saved to `out/speech/intro.wav`
 
 ### What’s inside
 - `mcp_speech_server.py` — MCP server exposing:
