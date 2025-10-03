@@ -4,8 +4,9 @@ This project adds speech-to-text and text-to-speech to an MCP server and wires i
 
 # Demo and Explanation
 - [Demo Link]()
-- For the speech to text, the input `isabela.wav` is "Hello, this is the real Isabela on the speech to text function."
-- For the text to speech, for the server test, the input is "It works — Kokoro speaking!"
+- Model: ollama/deepseek-r1 locally hosted.
+- For the speech to text, the input `samples/isabela.wav` is "Hello, this is the real Isabela on the speech to text function". The output is that text which appears in the terminal after "Speech to Text:".
+- For the text to speech, for the server test, the input is text of "It works — Kokoro speaking!". And the output is the audio file `out/speech/kokoro_hello.wav`.
 - Then the CrewAI Demo the agent is provided with the backstory about me and prompted with the task:
 ```
 # ------------- Task -------------
@@ -19,7 +20,12 @@ about_task = Task(
     agent=you_agent,
 )
 ```
-- After generating a response it is converted to speech using the mcp tool and saved to `out/speech/intro.wav`
+- After generating a text response it is converted to speech audio using the mcp tool and saved to `out/speech/intro.wav`
+- Insights observed:
+    - Kokoro is only for English but lightweight and simple to run (just needs spaCy’s small English model). Coqui has a multilingual model but it is not for commercial use, and had torch weight loading errors. Piper's open source multilingual's Spanish modality did not sound good.
+    - When using stdio, the MCP stream must be pure JSON-RPC. Any progress bars or installer logs printed to stdout will corrupt the stream and cause “Invalid JSON” errors. Fixes that worked: run Python unbuffered (-u/PYTHONUNBUFFERED=1), redirect noisy library output to stderr, and keep our own prints off stdout. (SSE/HTTP could avoid this, but stdio was simpler for local dev.)
+    - FastMCP expects arguments under a {"payload": ...} wrapper. Missing that causes Pydantic “Field required” errors. The client now always sends arguments={"payload": arguments}.
+    - Some MCP clients (e.g., my Claude Desktop setup) didn’t auto-play or download audio returned from tools. Saving files to a known folder (TTS_DOWNLOAD_DIR) and optionally exposing them via a tiny HTTP server (TTS_FILE_BASE_URL) made results easy to play (afplay on macOS) or click.
 
 ### What’s inside
 - `mcp_speech_server.py` — MCP server exposing:
