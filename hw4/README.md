@@ -7,20 +7,7 @@ This project adds speech-to-text and text-to-speech to an MCP server and wires i
 - Model: ollama/deepseek-r1 locally hosted.
 - For the speech to text, the input `samples/isabela.wav` is "Hello, this is the real Isabela on the speech to text function". The output is that text which appears in the terminal after "Speech to Text:".
 - For the text to speech, for the server test, the input is text of "It works — Kokoro speaking!". And the output is the audio file `out/speech/kokoro_hello.wav`.
-- Then the CrewAI Demo the agent is provided with the backstory about me and prompted with the task:
-```
-# ------------- Task -------------
-about_task = Task(
-    description=(
-        "Explain the user's background in ~3 sentences. "
-        "Summarize their strengths, recent projects, and interests. "
-        "Reply as a single natural paragraph only."
-    ),
-    expected_output="One clean paragraph (~3 sentences), no headings.",
-    agent=you_agent,
-)
-```
-- After generating a text response it is converted to speech audio using the mcp tool and saved to `out/speech/intro.wav`
+- Then the CrewAI Demo the agent is provided with the backstory about me and instructed to generate an "about me" paragraph and convert it to speech audio using the mcp tool and save it to `out/speech/intro.wav`
 - Insights observed:
     - Kokoro is only for English but lightweight and simple to run (just needs spaCy’s small English model). Coqui has a multilingual model but it is not for commercial use, and had torch weight loading errors. Piper's open source multilingual's Spanish modality did not sound good.
     - When using stdio, the MCP stream must be pure JSON-RPC. Any progress bars or installer logs printed to stdout will corrupt the stream and cause “Invalid JSON” errors. Fixes that worked: run Python unbuffered (-u/PYTHONUNBUFFERED=1), redirect noisy library output to stderr, and keep our own prints off stdout. (SSE/HTTP could avoid this, but stdio was simpler for local dev.)
@@ -45,6 +32,7 @@ about_task = Task(
 - `source .venv/bin/activate`
 - `pip install -r requirements.txt`
 - `python -m spacy download en_core_web_sm` # Kokoro uses spaCy under the hood to clean and segment text into sentences/tokens before TTS
+- in a different terminal: `python -m http.server 8787 --directory out` then in a browser you can go to: `http://localhost:8787/speech/`
 
 ### Run MCP Client Test
 ```

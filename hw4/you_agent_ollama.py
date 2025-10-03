@@ -6,7 +6,7 @@ import os
 import re
 from typing import List
 from pydantic import BaseModel
-from crewai import Agent, Task, LLM
+from crewai import Agent, Task, LLM, Tool
 from speech_mcp_client import tts, stt
 
 # ------------- LLM via Ollama -------------
@@ -78,29 +78,57 @@ you_agent = Agent(
     verbose=False,
 )
 
-# ------------- Task -------------
+# ------------- Tools -------------
+def tool_tts(text: str) -> str:
+    """Return a filepath to generated audio."""
+    out = tts(text, voice="af_heart", rate=1.0, save_path="speech/agent_say.wav")
+    return out.get("audio_path", "")
+
+def tool_stt(path: str) -> str:
+    """Return a transcript from an audio file path."""
+    out = stt(audio_path=path)
+    return out.get("text", "")
+
+tts_tool = Tool(
+    name="synthesize_speech",
+    description="Convert English text to speech (Kokoro). Input: plain text. Output: path to WAV file.",
+    func=tool_tts,
+)
+
+stt_tool = Tool(
+    name="transcribe_audio",
+    description="Transcribe an audio file at a local path. Input: path to WAV/MP3. Output: transcript.",
+    func=tool_stt,
+)
+
+you_agent.tools = [tts_tool, stt_tool]  # both available to the agent (task will only allow TTS)
+
+# ------------- Task: write the paragraph AND call TTS -------------
 about_task = Task(
     description=(
         "Explain the user's background in ~3 sentences. "
         "Summarize their strengths, recent projects, and interests. "
-        "Reply as a single natural paragraph only."
+        "Reply as a single natural paragraph only (no headings, no code, no chain-of-thought). "
+        "Then call the tool `synthesize_speech` with exactly that paragraph to create audio. "
+        "Return ONLY a JSON object with these keys:\n"
+        '{"text": "<the paragraph>", "audio_path": "<wav path returned by the tool>"}'
     ),
-    expected_output="One clean paragraph (~3 sentences), no headings.",
+    expected_output='A single JSON object with keys "text" and "audio_path".',
     agent=you_agent,
+    tools=[tts_tool],  # only TTS is allowed in this task
 )
 
-# ------------- Cleaner for LLM output -------------
+# ------------- Cleaner (still handy if you ever need it) -------------
 THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 
 def clean_for_tts(text: str) -> str:
-    s = THINK_RE.sub("", text)                         # drop <think>…</think>
+    s = THINK_RE.sub("", text)
     s = re.sub(r"(?im)^\s*(outline|summary|raw|output\s*format)\s*:.*$", "", s)
-    s = re.sub(r"```.*?```", "", s, flags=re.DOTALL)   # strip fenced code
-    s = re.sub(r"\s+\n", "\n", s).strip()              # tidy whitespace
+    s = re.sub(r"```.*?```", "", s, flags=re.DOTALL)
+    s = re.sub(r"\s+\n", "\n", s).strip()
     return s
 
 def to_text(task_out) -> str:
-    """Extract a string from CrewAI TaskOutput across versions."""
     for attr in ("output", "raw_output", "raw", "result", "final_output"):
         v = getattr(task_out, attr, None)
         if isinstance(v, str) and v.strip():
@@ -109,25 +137,39 @@ def to_text(task_out) -> str:
 
 # ------------- Main -------------
 if __name__ == "__main__":
-    # 1) Optional: speech-to-text first
+    import json
+
+    # 1) Optional: STT is separate from TTS/LLM
     wav_path = "samples/isabela.wav"
     if os.path.exists(wav_path):
         stt_res = stt(audio_path=wav_path)
-        result = stt_res.get("text", "") or ""
-        print("Speech to text:", result)
+        transcript = stt_res.get("text", "") or ""
+        print("Speech to text:", transcript)
 
-    # 2) Run the “about me” task
-    about_out = about_task.execute_sync(agent=you_agent)
-    about_text = clean_for_tts(to_text(about_out))
-    print("\n=== ABOUT (clean) ===\n", about_text)
+    # 2) Single task that writes the paragraph AND calls TTS via tool
+    task_out = about_task.execute_sync(agent=you_agent)
 
-    # 3) TTS with Kokoro (voice id: af_heart)
-    res = tts(
-        about_text,
-        voice="af_heart",          # Kokoro voice id
-        rate=1.0,
-        save_path="speech/intro.wav"
-    )
-    print("\nAudio saved to:", res.get("audio_path"))
-    if res.get("audio_path") and os.path.exists(res["audio_path"]):
-        print("Tip: on macOS you can play it with:\n  afplay", res["audio_path"])
+    # Robust JSON extraction (in case the model adds extra text)
+    def extract_json_block(s: str) -> str:
+        s = s.strip()
+        start = s.find("{")
+        end = s.rfind("}")
+        return s[start:end+1] if start != -1 and end != -1 and end > start else s
+
+    raw = to_text(task_out).strip()
+    try:
+        data = json.loads(extract_json_block(raw))
+    except Exception:
+        data = {}
+
+    text = data.get("text", "").strip()
+    audio_path = data.get("audio_path", "").strip()
+
+    # Optional: post-clean the text you display (audio already produced by tool)
+    display_text = clean_for_tts(text) if text else text
+
+    print("\n=== ABOUT (clean) ===\n", display_text or "(none)")
+    print("\nAudio saved to:", audio_path or "(none)")
+    if audio_path and os.path.exists(audio_path):
+        print("Tip: on macOS you can play it with:\n  afplay", audio_path)
+
