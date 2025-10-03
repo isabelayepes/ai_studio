@@ -6,7 +6,19 @@ This project adds speech-to-text and text-to-speech to an MCP server and wires i
 - [Demo Link]()
 - For the speech to text, the input `isabela.wav` is "Hello, this is the real Isabela on the speech to text function."
 - For the text to speech, for the server test, the input is "It works — Kokoro speaking!"
-- Then the CrewAI Demo 
+- Then the CrewAI Demo the agent is provided with the backstory about me and prompted with the task:
+```
+# ------------- Task -------------
+about_task = Task(
+    description=(
+        "Explain the user's background in ~3 sentences. "
+        "Summarize their strengths, recent projects, and interests. "
+        "Reply as a single natural paragraph only."
+    ),
+    expected_output="One clean paragraph (~3 sentences), no headings.",
+    agent=you_agent,
+)
+```
 
 ### What’s inside
 - `mcp_speech_server.py` — MCP server exposing:

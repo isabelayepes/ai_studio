@@ -78,7 +78,7 @@ you_agent = Agent(
     verbose=False,
 )
 
-# ------------- Task (no transcript) -------------
+# ------------- Task -------------
 about_task = Task(
     description=(
         "Explain the user's background in ~3 sentences. "
