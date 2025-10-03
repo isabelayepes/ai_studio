@@ -66,7 +66,7 @@ PY
 
 ```
 
-### the CrewAI demo:
+### Run the CrewAI demo:
 ```
 # Start Ollama
 ollama serve  # leave running in another terminal
